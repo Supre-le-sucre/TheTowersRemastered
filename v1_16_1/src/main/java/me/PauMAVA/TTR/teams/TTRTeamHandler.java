@@ -24,21 +24,23 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 public class TTRTeamHandler {
+    private HashMap<TTRMatch, List<TTRTeam>> teams = new HashMap<>();
 
-    private TTRMatch match = TTRCore.getInstance().getCurrentMatch();
-    private List<TTRTeam> teams = new ArrayList<TTRTeam>();
-
-    public void setUpDefaultTeams() {
+    public void setUpDefaultTeams(TTRMatch match) {
+        this.teams.put(match, new ArrayList<>());
         for (String team : TTRCore.getInstance().getConfigManager().getTeamNames()) {
-            this.teams.add(new TTRTeam(team));
+            this.teams.get(match).add(new TTRTeam(team));
         }
     }
 
     public boolean addPlayerToTeam(Player player, String teamIdentifier) {
-        TTRTeam team = getTeam(teamIdentifier);
+        TTRMatch match = TTRCore.getInstance().getMatchFromWorld(player.getWorld());
+        TTRTeam team = getTeam(teamIdentifier, match);
         if (team == null) {
             return false;
         }
@@ -47,7 +49,8 @@ public class TTRTeamHandler {
     }
 
     public boolean removePlayerFromTeam(Player player, String teamIdentifier) {
-        TTRTeam team = getTeam(teamIdentifier);
+        TTRMatch match = TTRCore.getInstance().getMatchFromWorld(player.getWorld());
+        TTRTeam team = getTeam(teamIdentifier, match);
         if (team == null) {
             return false;
         }
@@ -56,7 +59,8 @@ public class TTRTeamHandler {
     }
 
     public TTRTeam getPlayerTeam(Player player) {
-        for (TTRTeam team : this.teams) {
+        TTRMatch match = TTRCore.getInstance().getMatchFromWorld(player.getWorld());
+        for (TTRTeam team : this.teams.get(match)) {
             if (team.getPlayers().contains(player)) {
                 return team;
             }
@@ -64,8 +68,8 @@ public class TTRTeamHandler {
         return null;
     }
 
-    public TTRTeam getTeam(String teamIdentifier) {
-        for (TTRTeam team : this.teams) {
+    public TTRTeam getTeam(String teamIdentifier, TTRMatch match) {
+        for (TTRTeam team : this.teams.get(match)) {
             teamIdentifier = ChatColor.stripColor(teamIdentifier);
             if (teamIdentifier.contentEquals(team.getIdentifier())) {
                 return team;
@@ -74,15 +78,17 @@ public class TTRTeamHandler {
         return null;
     }
 
-    public List<TTRTeam> getTeams() {
-        return this.teams;
+    public List<TTRTeam> getTeams(TTRMatch match) {
+        return this.teams.get(match);
     }
 
     public void addPlayer(String teamIdentifier, Player player) {
-        getTeam(teamIdentifier).addPlayer(player);
+        TTRMatch match = TTRCore.getInstance().getMatchFromWorld(player.getWorld());
+        getTeam(teamIdentifier, match).addPlayer(player);
     }
 
     public void removePlayer(String teamIdentifier, Player player) {
-        getTeam(teamIdentifier).removePlayer(player);
+        TTRMatch match = TTRCore.getInstance().getMatchFromWorld(player.getWorld());
+        getTeam(teamIdentifier, match).removePlayer(player);
     }
 }

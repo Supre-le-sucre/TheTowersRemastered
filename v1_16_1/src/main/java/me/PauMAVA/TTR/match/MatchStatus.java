@@ -19,5 +19,5 @@
 package me.PauMAVA.TTR.match;
 
 public enum MatchStatus {
-    INGAME(), PREGAME(), ENDED(), DISABLED();
+    INGAME(), PREGAME(), ENDED(), DISABLED(), ONCOUNTDOWN();
 }

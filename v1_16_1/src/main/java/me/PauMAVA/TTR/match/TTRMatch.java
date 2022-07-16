@@ -21,7 +21,10 @@ package me.PauMAVA.TTR.match;
 import me.PauMAVA.TTR.TTRCore;
 import me.PauMAVA.TTR.lang.PluginString;
 import me.PauMAVA.TTR.teams.TTRTeam;
+import me.PauMAVA.TTR.teams.TTRTeamHandler;
+import me.PauMAVA.TTR.ui.TTRScoreboard;
 import me.PauMAVA.TTR.util.ReflectionUtils;
+import me.PauMAVA.TTR.world.TTRWorldHandler;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -33,37 +36,56 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 public class TTRMatch {
 
+    private TTRTeamHandler teamHandler;
     private MatchStatus status;
     private LootSpawner lootSpawner;
     private CageChecker checker;
+    private ArrayList<Player> players = new ArrayList<>();
     private HashMap<Player, Integer> kills = new HashMap<Player, Integer>();
 
-    public TTRMatch(MatchStatus initialStatus) {
+    private TTRScoreboard scoreboard;
+    private int id;
+
+    private World world;
+
+    public TTRMatch(MatchStatus initialStatus, World world, int id) {
         status = initialStatus;
+        this.world = world;
+        this.scoreboard = new TTRScoreboard(this);
+        this.teamHandler = new TTRTeamHandler();
+        this.teamHandler.setUpDefaultTeams(this);
+
+        this.id = id;
     }
 
     public boolean isOnCourse() {
         return this.status == MatchStatus.INGAME;
     }
 
+    public void addPlayer(Player player) { this.players.add(player); }
+
+    public ArrayList<Player> getPlayers() { return this.players; }
+
     public void startMatch() {
         this.status = MatchStatus.INGAME;
-        this.lootSpawner = new LootSpawner();
+        this.lootSpawner = new LootSpawner(this);
         this.checker = new CageChecker();
-        this.checker.setCages(TTRCore.getInstance().getConfigManager().getTeamCages(), 2);
+        this.checker.setCages(TTRCore.getInstance().getConfigManager().getTeamCages(this), 2);
         this.checker.startChecking();
         this.lootSpawner.startSpawning();
-        TTRCore.getInstance().getWorldHandler().configureTime();
-        TTRCore.getInstance().getWorldHandler().configureWeather();
-        TTRCore.getInstance().getWorldHandler().setWorldDifficulty(Difficulty.PEACEFUL);
-        TTRCore.getInstance().getScoreboard().startScoreboardTask();
+        TTRWorldHandler.getWorldHandler(this).configureTime();
+        TTRWorldHandler.getWorldHandler(this).configureWeather();
+        TTRWorldHandler.getWorldHandler(this).setWorldDifficulty(Difficulty.PEACEFUL);
+        this.getScoreboard().startScoreboardTask();
         for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-            TTRTeam playerTeam = TTRCore.getInstance().getTeamHandler().getPlayerTeam(player);
+            TTRTeam playerTeam = this.getTeamHandler().getPlayerTeam(player);
             if (playerTeam == null) {
                 continue;
             }
@@ -71,7 +93,7 @@ public class TTRMatch {
             player.getInventory().clear();
             player.setExp(0);
             player.setGameMode(GameMode.SURVIVAL);
-            double health = TTRCore.getInstance().getConfigManager().getMaxHealth();
+            double health = TTRCore.getInstance().getConfigManager().getMaxHealth(this.id);
             AttributeInstance maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
             maxHealth.setBaseValue(health);
             player.setHealthScale(health);
@@ -86,16 +108,16 @@ public class TTRMatch {
     public void endMatch(TTRTeam team) {
         this.status = MatchStatus.ENDED;
         this.lootSpawner.stopSpawning();
-        TTRCore.getInstance().getScoreboard().stopScoreboardTask();
+        this.getScoreboard().stopScoreboardTask();
         for (Player player : Bukkit.getServer().getOnlinePlayers()) {
             player.setGameMode(GameMode.SPECTATOR);
             ChatColor teamColor = TTRCore.getInstance().getConfigManager().getTeamColor(team.getIdentifier());
             player.sendTitle(teamColor + "" + ChatColor.BOLD + team.getIdentifier(), ChatColor.AQUA + "" + PluginString.WIN_OUTPUT, 10, 100, 20);
             player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 10, 1);
         }
-        TTRCore.getInstance().getWorldHandler().enableDayLightCycle();
-        TTRCore.getInstance().getWorldHandler().enableWeatherCycle();
-        TTRCore.getInstance().getWorldHandler().restoreDifficulty();
+        TTRWorldHandler.getWorldHandler(this).enableDayLightCycle();
+        TTRWorldHandler.getWorldHandler(this).enableWeatherCycle();
+        TTRWorldHandler.getWorldHandler(this).restoreDifficulty();
     }
 
     public void playerDeath(Player player, Player killer) {
@@ -105,9 +127,8 @@ public class TTRMatch {
                 try {
                     Object packet = ReflectionUtils.createNMSInstance("PacketPlayInClientCommand", List.of(), List.of());
                     Class<?> enumClientCommand = ReflectionUtils.getNMSClass("PacketPlayInClientCommand$EnumClientCommand");
-                    // TODO Test if enumClientCommand.getEnumConstants())[0] works.
                     Object performRespawnConstant = null;
-                    for (Object constant: enumClientCommand.getEnumConstants()) {
+                    for (Object constant : enumClientCommand.getEnumConstants()) {
                         if (constant.toString().equalsIgnoreCase("PERFORM_RESPAWN")) {
                             performRespawnConstant = constant;
                             break;
@@ -127,21 +148,23 @@ public class TTRMatch {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                TTRTeam team = TTRCore.getInstance().getTeamHandler().getPlayerTeam(player);
-                if (team != null) {
-                    player.teleport(TTRCore.getInstance().getConfigManager().getTeamSpawn(team.getIdentifier()));
+                if (TTRCore.getInstance().getMatchFromWorld(player.getWorld()) != null) {
+                    TTRTeam team = TTRCore.getInstance().getMatchFromWorld(player.getWorld()).getTeamHandler().getPlayerTeam(player);
+                    if (team != null) {
+                        player.teleport(TTRCore.getInstance().getConfigManager().getTeamSpawn(team.getIdentifier()));
+                    }
+                    setPlayerArmor(player);
+                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 10, 1);
+                    player.playSound(player.getLocation(), Sound.BLOCK_GLASS_BREAK, 10, 1);
+                    this.cancel();
+                    kills.put(killer, getKills(killer) + 1);
                 }
-                setPlayerArmor(player);
-                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 10, 1);
-                player.playSound(player.getLocation(), Sound.BLOCK_GLASS_BREAK, 10, 1);
-                this.cancel();
-                kills.put(killer, getKills(killer) + 1);
             }
         }.runTaskLater(TTRCore.getInstance(), 2L);
     }
 
     private void setPlayerArmor(Player player) {
-        TTRTeam team = TTRCore.getInstance().getTeamHandler().getPlayerTeam(player);
+        TTRTeam team = this.getTeamHandler().getPlayerTeam(player);
         ChatColor color;
         if (team != null) {
             color = TTRCore.getInstance().getConfigManager().getTeamColor(team.getIdentifier());
@@ -167,8 +190,25 @@ public class TTRMatch {
         return this.status;
     }
 
+    public void setStatus(MatchStatus status) {
+        this.status = status;
+    }
+
     public int getKills(Player player) {
         return this.kills.getOrDefault(player, 0);
     }
 
+    public World getWorld() { return this.world; }
+
+    public TTRScoreboard getScoreboard() { return this.scoreboard; }
+
+    public TTRTeamHandler getTeamHandler() {
+        return this.teamHandler;
+    }
+
+    public int getId() { return this.id; }
+
+    public void removePlayer(Player player) {
+        this.players.remove(player);
+    }
 }

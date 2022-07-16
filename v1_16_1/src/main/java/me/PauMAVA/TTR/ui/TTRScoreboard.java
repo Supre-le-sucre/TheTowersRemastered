@@ -2,6 +2,7 @@ package me.PauMAVA.TTR.ui;
 
 import me.PauMAVA.TTR.TTRCore;
 import me.PauMAVA.TTR.lang.PluginString;
+import me.PauMAVA.TTR.match.TTRMatch;
 import me.PauMAVA.TTR.teams.TTRTeam;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -12,6 +13,7 @@ import org.bukkit.scoreboard.*;
 public class TTRScoreboard {
 
     private ScoreboardManager scoreboardManager = Bukkit.getScoreboardManager();
+    private TTRMatch match;
     private Scoreboard ttrScoreboard;
     private Objective kills;
     private Objective health;
@@ -19,7 +21,8 @@ public class TTRScoreboard {
     private Score totalTime;
     private int taskPID;
 
-    public TTRScoreboard() {
+    public TTRScoreboard(TTRMatch match) {
+        this.match = match;
         this.ttrScoreboard = this.scoreboardManager.getNewScoreboard();
         this.kills = this.ttrScoreboard.registerNewObjective("kills", "dummy", ChatColor.LIGHT_PURPLE + "kills");
         this.kills.setDisplaySlot(DisplaySlot.PLAYER_LIST);
@@ -31,14 +34,14 @@ public class TTRScoreboard {
 
     public void refreshScoreboard() {
         updatePoints();
-        for (Player player : Bukkit.getServer().getOnlinePlayers()) {
+        for (Player player : this.match.getPlayers()) {
             player.setScoreboard(this.ttrScoreboard);
-            this.kills.getScore(player.getName()).setScore(TTRCore.getInstance().getCurrentMatch().getKills(player));
+            this.kills.getScore(player.getName()).setScore(match.getKills(player));
         }
     }
 
     public void removeScoreboard() {
-        for (Player player : Bukkit.getServer().getOnlinePlayers()) {
+        for (Player player : this.match.getPlayers()) {
             player.setScoreboard(this.scoreboardManager.getMainScoreboard());
         }
     }
@@ -79,7 +82,7 @@ public class TTRScoreboard {
     }
 
     private void updatePoints() {
-        for (TTRTeam team : TTRCore.getInstance().getTeamHandler().getTeams()) {
+        for (TTRTeam team : this.match.getTeamHandler().getTeams(this.match)) {
             ChatColor teamColor = TTRCore.getInstance().getConfigManager().getTeamColor(team.getIdentifier());
             points.getScore(teamColor + "" + ChatColor.BOLD + team.getIdentifier()).setScore(team.getPoints());
         }
@@ -88,5 +91,7 @@ public class TTRScoreboard {
     public void stopScoreboardTask() {
         Bukkit.getScheduler().cancelTask(this.taskPID);
     }
+
+    public TTRMatch getMatch() { return this.match; }
 
 }

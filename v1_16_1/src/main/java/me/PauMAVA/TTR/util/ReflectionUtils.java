@@ -94,10 +94,10 @@ public class ReflectionUtils {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> T callMethod(Object instance, String name, List<Class<?>> paramTypes, List<Object> parameters, Class<T> returnValue) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public static <T> T callMethod(Object instance, String name, List<Class<?>> paramTypes, Class<T> returnValue) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         Method method = instance.getClass().getDeclaredMethod(name, paramTypes.toArray(new Class[0]));
         method.setAccessible(true);
-        return (T) method.invoke(instance, parameters);
+        return (T) method.invoke(instance, new Object[]{null});
     }
 
 }

@@ -19,31 +19,40 @@
 package me.PauMAVA.TTR.world;
 
 import me.PauMAVA.TTR.TTRCore;
+import me.PauMAVA.TTR.match.TTRMatch;
 import org.bukkit.Difficulty;
 import org.bukkit.GameRule;
 import org.bukkit.World;
 
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+
 public class TTRWorldHandler {
+
+    private static ArrayList<TTRWorldHandler> instances = new ArrayList<TTRWorldHandler>();
 
     private TTRCore plugin;
 
+    private TTRMatch match;
     private World matchWorld;
 
     private Difficulty originalDifficulty;
 
-    public TTRWorldHandler(TTRCore plugin, World matchWorld) {
+    public TTRWorldHandler(TTRCore plugin, TTRMatch match) {
         this.plugin = plugin;
-        this.matchWorld = matchWorld;
-        this.originalDifficulty = matchWorld.getDifficulty();
+        this.match = match;
+        this.matchWorld = match.getWorld();
+        this.originalDifficulty = match.getWorld().getDifficulty();
+        instances.add(this);
     }
 
     public void setUpWorld() {
-        this.matchWorld.setSpawnLocation(plugin.getConfigManager().getLobbyLocation());
+        this.matchWorld.setSpawnLocation(plugin.getConfigManager().getPreGameLobbyLocation(match.getId()));
     }
 
     public void configureWeather() {
         setWeatherCycle(false);
-        String weatherType = plugin.getConfigManager().getWeather();
+        String weatherType = plugin.getConfigManager().getWeather(this.match.getId());
         if (weatherType.equalsIgnoreCase("rain") || weatherType.equalsIgnoreCase("thunder")) {
             this.matchWorld.setStorm(true);
             if (weatherType.equalsIgnoreCase("thunder")) {
@@ -57,7 +66,7 @@ public class TTRWorldHandler {
 
     public void configureTime() {
         setDayLightCycle(false);
-        this.matchWorld.setTime(plugin.getConfigManager().getTime());
+        this.matchWorld.setTime(plugin.getConfigManager().getTime(this.match.getId()));
     }
 
     public void enableDayLightCycle() {
@@ -75,6 +84,18 @@ public class TTRWorldHandler {
     public void setWorldDifficulty(Difficulty difficulty) {
         matchWorld.setDifficulty(difficulty);
     }
+    @Nullable
+    public static TTRWorldHandler getWorldHandler(TTRMatch match) {
+        for(TTRWorldHandler wh : instances) {
+            if(wh.getMatch().equals(match)) return wh;
+        }
+        return null;
+
+    }
+
+    public TTRMatch getMatch() {
+        return this.match;
+    }
 
     private void setWeatherCycle(boolean value) {
         this.matchWorld.setGameRule(GameRule.DO_WEATHER_CYCLE, value);
@@ -83,6 +104,7 @@ public class TTRWorldHandler {
     private void setDayLightCycle(boolean value) {
         this.matchWorld.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, value);
     }
+
 
 
 }

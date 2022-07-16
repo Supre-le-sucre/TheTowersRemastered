@@ -24,6 +24,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class AutoStarter {
@@ -34,7 +35,7 @@ public class AutoStarter {
 
     private int target;
 
-    private List<Player> queue = new ArrayList<>();
+    private static HashMap<TTRMatch, List<Player>> queue = new HashMap<>();
 
     public AutoStarter(TTRCore plugin, FileConfiguration configuration) {
         this.plugin = plugin;
@@ -42,22 +43,31 @@ public class AutoStarter {
         this.enabled = configuration.getBoolean("autostart.enabled");
     }
 
-    public void addPlayerToQueue(Player player) {
+    public void addMatch(TTRMatch match) {
+        queue.put(match, new ArrayList<>());
+    }
+
+    public void addPlayerToQueue(Player player, TTRMatch match) {
         if (enabled) {
-            if (!isPlayerInQueue(player)) {
-                queue.add(player);
+            if (!isPlayerInQueue(player, match)) {
+                queue.get(match).add(player);
+                match.addPlayer(player);
             }
-            checkStartGame();
+            if (enabled && target <= queue.get(match).size()) {
+                new XPBarTimer(20, match);
+            }
         }
     }
 
-    public void removePlayerFromQueue(Player player) {
+    public void removePlayerFromQueue(Player player, TTRMatch match) {
         if (enabled) {
-            removePlayerFromList(player);
+            queue.getOrDefault(match, new ArrayList<>()).remove(player);
+            match.removePlayer(player);
+
         }
     }
 
-    private void checkStartGame() {
+    /* private void checkStartGame() {
         if (enabled && target <= queue.size()) {
             try {
                 new XPBarTimer(20, plugin.getCurrentMatch().getClass().getMethod("startMatch")).runTaskTimer(plugin, 0L, 20L);
@@ -65,14 +75,10 @@ public class AutoStarter {
                 e.printStackTrace();
             }
         }
-    }
+    } */
 
-    private void removePlayerFromList(Player player) {
-        queue.removeIf(p -> player.getUniqueId().equals(p.getUniqueId()));
-    }
-
-    private boolean isPlayerInQueue(Player player) {
-        for (Player p : queue) {
+    private boolean isPlayerInQueue(Player player, TTRMatch match) {
+        for (Player p : queue.get(match)) {
             if (player.getUniqueId().equals(p.getUniqueId())) {
                 return true;
             }

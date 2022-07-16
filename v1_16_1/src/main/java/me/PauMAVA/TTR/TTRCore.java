@@ -2,18 +2,18 @@
  * TheTowersRemastered (TTR)
  * Copyright (c) 2019-2021  Pau Machetti Vallverdú
  *
- * This program is free software: you can redistribute it and/or modify
+ * instance program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * instance program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with instance program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package me.PauMAVA.TTR;
 
@@ -31,19 +31,24 @@ import me.PauMAVA.TTR.ui.TTRScoreboard;
 import me.PauMAVA.TTR.util.EventListener;
 import me.PauMAVA.TTR.util.PacketInterceptor;
 import me.PauMAVA.TTR.world.TTRWorldHandler;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
 
 public class TTRCore extends JavaPlugin {
 
     private static TTRCore instance;
     private boolean enabled = false;
-    private TTRMatch match;
-    private TTRTeamHandler teamHandler;
+    private ArrayList<TTRMatch> matches = new ArrayList<>();
+
     private TTRConfigManager configManager;
-    private TTRWorldHandler worldHandler;
+    private ArrayList<TTRWorldHandler> worldHandler = new ArrayList<>();
     private TTRCustomTab customTab;
-    private TTRScoreboard scoreboard;
+
     private AutoStarter autoStarter;
     private LanguageManager languageManager;
     private PacketInterceptor packetInterceptor;
@@ -53,43 +58,56 @@ public class TTRCore extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
-        if (this.getConfig().getBoolean("enable_on_start")) {
-            enabled = true;
-        } else {
-            getLogger().warning("" + PluginString.DISABLED_ON_STARTUP_NOTICE);
-        }
-        this.configManager = new TTRConfigManager(this.getConfig());
-        this.languageManager = new LanguageManager(this);
-        this.packetInterceptor = new PacketInterceptor(this);
-        for (Player player: this.getServer().getOnlinePlayers()) {
-            this.packetInterceptor.addPlayer(player);
-        }
-        if (enabled) {
-            this.customTab = new TTRCustomTab(this);
-            this.scoreboard = new TTRScoreboard();
-            this.match = new TTRMatch(MatchStatus.PREGAME);
-            this.customTab.runTaskTimer(this, 0L, 20L);
-            this.teamHandler = new TTRTeamHandler();
-            this.teamHandler.setUpDefaultTeams();
-            this.worldHandler = new TTRWorldHandler(this, this.getServer().getWorlds().get(0));
-            this.worldHandler.setUpWorld();
-            this.getServer().getPluginManager().registerEvents(new EventListener(this), this);
-        } else {
-            this.match = new TTRMatch(MatchStatus.DISABLED);
-        }
+        new BukkitRunnable() {
+
+            @Override
+            public void run() {
+                instance.configManager = new TTRConfigManager(instance.getConfig());
+                instance.languageManager = new LanguageManager(instance);
+                if (instance.getConfig().getBoolean("enable_on_start")) {
+                    enabled = true;
+                } else {
+                    getLogger().warning("" + PluginString.DISABLED_ON_STARTUP_NOTICE);
+                }
+                instance.packetInterceptor = new PacketInterceptor(instance);
+                if (enabled) {
+                    instance.customTab = new TTRCustomTab(instance);
+                    instance.autoStarter = new AutoStarter(instance, instance.getConfig());
+                    for(TTRMatch match : configManager.getMatchesRegistered()) {
+                        instance.matches.add(match);
+                        instance.autoStarter.addMatch(match);
+                        instance.worldHandler.add(new TTRWorldHandler(instance, match));
+                        TTRWorldHandler.getWorldHandler(match).setUpWorld();
+                    }
+                    instance.customTab.runTaskTimer(instance, 0L, 20L);
+
+                    instance.getServer().getPluginManager().registerEvents(new EventListener(instance), instance);
+                } else {
+                    for(TTRMatch match : instance.matches) {
+                        match.setStatus(MatchStatus.DISABLED);
+                    }
+                }
+
+            }
+
+        }.runTaskLater(this, 1);
+        
+        
 
         this.getCommand("ttrstart").setExecutor(new StartMatchCommand());
         EnableDisableCommand enableDisableCommand = new EnableDisableCommand(this);
         this.getCommand("ttrenable").setExecutor(enableDisableCommand);
         this.getCommand("ttrdisable").setExecutor(enableDisableCommand);
-        this.autoStarter = new AutoStarter(this, this.getConfig());
+
     }
 
     @Override
     public void onDisable() {
         try {
             this.customTab.cancel();
-            this.scoreboard.removeScoreboard();
+            for(TTRMatch match : this.getCurrentMatches()) {
+                match.getScoreboard().removeScoreboard();
+            }
             for (Player player: this.getServer().getOnlinePlayers()) {
                 this.packetInterceptor.removePlayer(player);
             }
@@ -105,24 +123,21 @@ public class TTRCore extends JavaPlugin {
         return this.enabled;
     }
 
-    public TTRMatch getCurrentMatch() {
-        return this.match;
+    public ArrayList<TTRMatch> getCurrentMatches() {
+        return this.matches;
     }
 
-    public TTRTeamHandler getTeamHandler() {
-        return this.teamHandler;
-    }
+    @Nullable
+    public TTRMatch getMatchFromWorld(World world) {
+        for(TTRMatch match : getCurrentMatches()) {
 
+            if(match.getWorld().equals(world)) return match;
+        }
+        //TODO add placeholder match
+        return this.matches.get(0);
+    }
     public TTRConfigManager getConfigManager() {
         return this.configManager;
-    }
-
-    public TTRWorldHandler getWorldHandler() {
-        return worldHandler;
-    }
-
-    public TTRScoreboard getScoreboard() {
-        return scoreboard;
     }
 
     public boolean isCounting() {

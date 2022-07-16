@@ -31,6 +31,8 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.Objects;
+
 public class TeamSelector extends CustomUI implements Listener {
 
     private Player owner;
@@ -42,18 +44,21 @@ public class TeamSelector extends CustomUI implements Listener {
         this.owner = player;
         setUp();
         TTRCore.getInstance().getServer().getPluginManager().registerEvents(this, TTRCore.getInstance());
-        TTRTeam possibleTeam = TTRCore.getInstance().getTeamHandler().getPlayerTeam(this.owner);
-        if (possibleTeam != null) {
-            for (int i = 0; i < super.getInventory().getSize(); i++) {
-                ItemStack stack = super.getInventory().getItem(i);
-                if (stack != null) {
-                    String cleanName = ChatColor.stripColor(stack.getItemMeta().getDisplayName());
-                    if (possibleTeam.getIdentifier().equalsIgnoreCase(cleanName)) {
-                        this.selected = i;
-                        addEnchantment(i);
-                        break;
+        if(TTRCore.getInstance().getMatchFromWorld(player.getWorld()) !=null) {
+            TTRTeam possibleTeam = Objects.requireNonNull(TTRCore.getInstance().getMatchFromWorld(player.getWorld())).getTeamHandler().getPlayerTeam(this.owner);
+            if (possibleTeam != null) {
+                for (int i = 0; i < super.getInventory().getSize(); i++) {
+                    ItemStack stack = super.getInventory().getItem(i);
+                    if (stack != null) {
+                        String cleanName = ChatColor.stripColor(stack.getItemMeta().getDisplayName());
+                        if (possibleTeam.getIdentifier().equalsIgnoreCase(cleanName)) {
+                            this.selected = i;
+                            addEnchantment(i);
+                            break;
+                        }
                     }
                 }
+
             }
         }
     }
@@ -81,13 +86,13 @@ public class TeamSelector extends CustomUI implements Listener {
             setUp();
             addEnchantment(this.selected);
             String teamName = super.getInventory().getItem(this.selected).getItemMeta().getDisplayName();
-            TTRCore.getInstance().getTeamHandler().addPlayer(teamName, this.owner);
+            TTRCore.getInstance().getMatchFromWorld(event.getWhoClicked().getWorld()).getTeamHandler().addPlayer(teamName, this.owner);
             if (lastTeam != null) {
-                TTRCore.getInstance().getTeamHandler().removePlayer(teamName, this.owner);
+                TTRCore.getInstance().getMatchFromWorld(event.getWhoClicked().getWorld()).getTeamHandler().removePlayer(teamName, this.owner);
             }
             this.lastTeam = teamName;
         }
-        if (TTRCore.getInstance().enabled() && !TTRCore.getInstance().getCurrentMatch().isOnCourse()) {
+        if (TTRCore.getInstance().enabled() && !TTRCore.getInstance().getMatchFromWorld(event.getWhoClicked().getWorld()).isOnCourse()) {
             event.setCancelled(true);
         }
     }

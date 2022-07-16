@@ -19,49 +19,78 @@
 package me.PauMAVA.TTR.util;
 
 import me.PauMAVA.TTR.TTRCore;
+import me.PauMAVA.TTR.match.MatchStatus;
+import me.PauMAVA.TTR.match.TTRMatch;
+import net.minecraft.server.v1_16_R1.World;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 
-public class XPBarTimer extends BukkitRunnable {
+public class XPBarTimer {
 
     private int i;
-    private Method execute;
+
+    private TTRMatch match;
+    private static ArrayList<XPBarTimer> instances = new ArrayList<>();
 
     public XPBarTimer(int time) {
         this.i = time;
+        instances.add(this);
     }
 
-    public XPBarTimer(int time, Method execute) {
+    public XPBarTimer(int time, TTRMatch match) {
         this.i = time;
-        this.execute = execute;
+        this.match = match;
+        instances.add(this);
+        match.setStatus(MatchStatus.ONCOUNTDOWN);
+        BukkitTask timer = new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Player player : Bukkit.getServer().getOnlinePlayers()) {
+                    if(player.getWorld().equals(match.getWorld()))
+                        player.setLevel(getMatchTimer(match).getTime());
+                }
+                if (getMatchTimer(match).getTime() <= 5) {
+                    for (Player player : Bukkit.getServer().getOnlinePlayers()) {
+                        if(player.getWorld().equals(match.getWorld()))
+                            player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 10, 1);
+
+                    }
+                }
+                if (getMatchTimer(match).getTime() <= 0) {
+                    match.startMatch();
+                    cancel();
+                    return;
+                }
+                getMatchTimer(match).setTime(getMatchTimer(match).getTime()-1);
+            }
+        }.runTaskTimer(TTRCore.getInstance(), 0L, 20L);
     }
 
-    @Override
-    public void run() {
-        for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-            player.setLevel(i);
-        }
-        if (i <= 5) {
-            for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-                player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 10, 1);
+    public int getTime() { return this.i; }
+
+    public TTRMatch getMatch() { return this.match; }
+
+    public XPBarTimer getMatchTimer(TTRMatch match) {
+        if(match.getStatus().equals(MatchStatus.ONCOUNTDOWN)) {
+            for (XPBarTimer timer : XPBarTimer.getInstances()) {
+                if(timer.getMatch().equals(match)) return timer;
             }
-        }
-        if (i <= 0) {
-            if (this.execute != null) {
-                try {
-                    this.execute.invoke(TTRCore.getInstance().getCurrentMatch());
-                } catch (IllegalAccessException | InvocationTargetException e) {
-                    e.printStackTrace();
-                }
-            }
-            this.cancel();
-            return;
-        }
-        i--;
+            return null;
+        } else return null;
     }
+
+    public void setTime(int time) { this.i = time;}
+
+    public static ArrayList<XPBarTimer> getInstances() {
+        return instances;
+    }
+
+
 }

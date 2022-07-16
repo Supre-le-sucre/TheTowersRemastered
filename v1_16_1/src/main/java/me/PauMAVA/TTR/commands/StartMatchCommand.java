@@ -26,11 +26,12 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 public class StartMatchCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender theSender, Command command, String label, String[] args) {
-        if (TTRCore.getInstance().enabled() && !TTRCore.getInstance().getCurrentMatch().isOnCourse()) {
+        if (TTRCore.getInstance().enabled() && theSender instanceof Player && !TTRCore.getInstance().getMatchFromWorld(((Player)theSender).getWorld()).isOnCourse()) {
             int timer;
             if (args == null || args.length == 0) {
                 timer = 10;
@@ -42,11 +43,8 @@ public class StartMatchCommand implements CommandExecutor {
                     return false;
                 }
             }
-            try {
-                new XPBarTimer(timer, TTRCore.getInstance().getCurrentMatch().getClass().getMethod("startMatch")).runTaskTimer(TTRCore.getInstance(), 0L, 20L);
-            } catch (NoSuchMethodException e) {
-                e.printStackTrace();
-            }
+            new XPBarTimer(timer, TTRCore.getInstance().getMatchFromWorld(((Player)theSender).getWorld()));
+
         }
         return false;
     }

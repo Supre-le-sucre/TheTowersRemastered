@@ -20,35 +20,42 @@
 package me.PauMAVA.TTR.chat;
 
 import me.PauMAVA.TTR.TTRCore;
+import me.PauMAVA.TTR.match.TTRMatch;
 import me.PauMAVA.TTR.teams.TTRTeam;
 import me.PauMAVA.TTR.util.TTRPrefix;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
+
+import java.util.Objects;
 
 public class TTRChatManager {
 
     public static void sendMessage(Player sender, String originalMessage) {
         if (originalMessage.startsWith("!")) {
-            dispatchGlobalMessage(originalMessage);
+            dispatchGlobalMessage(originalMessage, sender.getWorld());
         } else {
             dispatchTeamMessage(originalMessage, sender);
         }
     }
 
-    private static void dispatchGlobalMessage(String string) {
+    private static void dispatchGlobalMessage(String string, World world) {
         for (Player p : Bukkit.getServer().getOnlinePlayers()) {
-            p.sendMessage(TTRPrefix.TTR_GLOBAL + "" + ChatColor.GRAY + string);
+            if(p.getWorld().equals(world))
+                p.sendMessage(TTRPrefix.TTR_GLOBAL + "" + ChatColor.GRAY + string);
         }
     }
 
     private static void dispatchTeamMessage(String string, Player sender) {
-        TTRTeam playerTeam = TTRCore.getInstance().getTeamHandler().getPlayerTeam(sender);
-        if (playerTeam == null) {
-            return;
-        }
-        for (Player p : playerTeam.getPlayers()) {
-            p.sendMessage(TTRPrefix.TTR_TEAM + "" + ChatColor.GRAY + string);
+        if(TTRCore.getInstance().getMatchFromWorld(sender.getWorld()) != null) {
+            TTRTeam playerTeam = TTRCore.getInstance().getMatchFromWorld(sender.getWorld()).getTeamHandler().getPlayerTeam(sender);
+            if (playerTeam == null) {
+                return;
+            }
+            for (Player p : playerTeam.getPlayers()) {
+                p.sendMessage(TTRPrefix.TTR_TEAM + "" + ChatColor.GRAY + string);
+            }
         }
     }
 

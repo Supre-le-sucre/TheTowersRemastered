@@ -37,9 +37,12 @@ public class LootSpawner {
     private int ironTaskPID;
     private int xpTaskPID;
 
-    public LootSpawner() {
-        this.ironLocations = TTRCore.getInstance().getConfigManager().getIronSpawns();
-        this.xpLocations = TTRCore.getInstance().getConfigManager().getXPSpawns();
+    private TTRMatch match;
+
+    public LootSpawner(TTRMatch match) {
+        this.match = match;
+        this.ironLocations = TTRCore.getInstance().getConfigManager().getIronSpawns(match.getId());
+        this.xpLocations = TTRCore.getInstance().getConfigManager().getXPSpawns(match.getId());
     }
 
     public void startSpawning() {

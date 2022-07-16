@@ -24,6 +24,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import me.PauMAVA.TTR.TTRCore;
 import me.PauMAVA.TTR.chat.TTRChatManager;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.InvocationTargetException;
@@ -37,7 +38,7 @@ public class PacketInterceptor {
         this.plugin = plugin;
     }
 
-    public void addPlayer(Player player) {
+    /*public void addPlayer(Player player) {
         ChannelDuplexHandler channelDuplexHandler = new ChannelDuplexHandler() {
             @Override
             public void channelRead(ChannelHandlerContext context, Object packet) {
@@ -46,7 +47,7 @@ public class PacketInterceptor {
                         Class<?> packetPlayInChatClazz = ReflectionUtils.getNMSClass("PacketPlayInChat");
                         if (packet.getClass().equals(packetPlayInChatClazz)) {
                             Object asPacketPlayInChat = packetPlayInChatClazz.cast(packet);
-                            String message = ReflectionUtils.callMethod(asPacketPlayInChat, "b", List.of(), List.of(), String.class);
+                            String message = ReflectionUtils.callMethod(asPacketPlayInChat, "b", List.of(), String.class);
                             if (!message.startsWith("/")) {
                                 TTRChatManager.sendMessage(player, message);
                             }
@@ -63,7 +64,7 @@ public class PacketInterceptor {
             ChannelPipeline pipeline = ReflectionUtils.getPlayerChannel(player).pipeline();
             pipeline.addBefore("packet_handler", player.getName(), channelDuplexHandler);
         } catch (IllegalArgumentException | NoSuchFieldException | ClassNotFoundException | InvocationTargetException | NoSuchMethodException | IllegalAccessException ignored) {}
-    }
+    } */
 
     public void removePlayer(Player player) {
         try {

@@ -29,6 +29,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 public class CageChecker {
 
@@ -37,22 +38,25 @@ public class CageChecker {
 
 
     public void startChecking() {
+        //TODO Checker must be independent between world
         this.checkerTaskPID = new BukkitRunnable() {
             @Override
             public void run() {
-                for (Player p : Bukkit.getServer().getOnlinePlayers()) {
-                    for (Cage cage : cages) {
-                        Location particleLocation = new Location(cage.getLocation().getWorld(), cage.getLocation().getBlockX(), cage.getLocation().getBlockY() + 1, cage.getLocation().getBlockZ());
-                        particleLocation.add(particleLocation.getX() > 0 ? 0.5 : -0.5, 0.0, particleLocation.getZ() > 0 ? 0.5 : -0.5);
-                        cage.getLocation().getWorld().spawnParticle(Particle.SPELL, particleLocation, 100);
-                        if (cage.isInCage(p) && TTRCore.getInstance().getTeamHandler().getPlayerTeam(p) != null) {
-                            if (cage.getOwner().equals(TTRCore.getInstance().getTeamHandler().getPlayerTeam(p))) {
-                                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 10, 1);
-                                p.sendMessage(TTRPrefix.TTR_GAME + "" + ChatColor.RED + PluginString.ALLY_CAGE_ENTER_OUTPUT);
-                                p.teleport(TTRCore.getInstance().getConfigManager().getTeamSpawn(TTRCore.getInstance().getTeamHandler().getPlayerTeam(p).getIdentifier()));
-                            } else {
-                                cage.getLocation().getWorld().strikeLightningEffect(cage.getLocation());
-                                playerOnCage(p);
+                for (TTRMatch match : TTRCore.getInstance().getCurrentMatches()) {
+                    for (Player p : Bukkit.getServer().getOnlinePlayers()) { //TODO get players from match instead
+                        for (Cage cage : cages) {
+                            Location particleLocation = new Location(cage.getLocation().getWorld(), cage.getLocation().getBlockX(), cage.getLocation().getBlockY() + 1, cage.getLocation().getBlockZ());
+                            particleLocation.add(particleLocation.getX() > 0 ? 0.5 : -0.5, 0.0, particleLocation.getZ() > 0 ? 0.5 : -0.5);
+                            cage.getLocation().getWorld().spawnParticle(Particle.SPELL, particleLocation, 100);
+                            if (cage.isInCage(p) && match.getTeamHandler().getPlayerTeam(p) != null) {
+                                if (cage.getOwner().equals(match.getTeamHandler().getPlayerTeam(p))) {
+                                    p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 10, 1);
+                                    p.sendMessage(TTRPrefix.TTR_GAME + "" + ChatColor.RED + PluginString.ALLY_CAGE_ENTER_OUTPUT);
+                                    p.teleport(TTRCore.getInstance().getConfigManager().getTeamSpawn(match.getTeamHandler().getPlayerTeam(p).getIdentifier()));
+                                } else {
+                                    cage.getLocation().getWorld().strikeLightningEffect(cage.getLocation());
+                                    playerOnCage(p);
+                                }
                             }
                         }
                     }
@@ -66,16 +70,18 @@ public class CageChecker {
     }
 
     private void playerOnCage(Player player) {
-        TTRTeam playersTeam = TTRCore.getInstance().getTeamHandler().getPlayerTeam(player);
-        player.teleport(TTRCore.getInstance().getConfigManager().getTeamSpawn(playersTeam.getIdentifier()));
-        playersTeam.addPoints(1);
-        TTRCore.getInstance().getScoreboard().refreshScoreboard();
-        Bukkit.broadcastMessage(TTRPrefix.TTR_GAME + "" + ChatColor.GRAY + player.getName() + PluginString.SCORE_OUTPUT);
-        for (Player p : Bukkit.getServer().getOnlinePlayers()) {
-            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 10, 1);
-        }
-        if (playersTeam.getPoints() >= TTRCore.getInstance().getConfigManager().getMaxPoints()) {
-            TTRCore.getInstance().getCurrentMatch().endMatch(playersTeam);
+        if(TTRCore.getInstance().getMatchFromWorld(player.getWorld()) != null) {
+            TTRTeam playersTeam = TTRCore.getInstance().getMatchFromWorld(player.getWorld()).getTeamHandler().getPlayerTeam(player);
+            player.teleport(TTRCore.getInstance().getConfigManager().getTeamSpawn(playersTeam.getIdentifier()));
+            playersTeam.addPoints(1);
+            TTRCore.getInstance().getMatchFromWorld(player.getWorld()).getScoreboard().refreshScoreboard();
+            Bukkit.broadcastMessage(TTRPrefix.TTR_GAME + "" + ChatColor.GRAY + player.getName() + PluginString.SCORE_OUTPUT);
+            for (Player p : Bukkit.getServer().getOnlinePlayers()) {
+                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 10, 1);
+            }
+            if (playersTeam.getPoints() >= TTRCore.getInstance().getConfigManager().getMaxPoints(TTRCore.getInstance().getMatchFromWorld(player.getWorld()).getId())) {
+                TTRCore.getInstance().getMatchFromWorld(player.getLocation().getWorld()).endMatch(playersTeam);
+            }
         }
     }
 
