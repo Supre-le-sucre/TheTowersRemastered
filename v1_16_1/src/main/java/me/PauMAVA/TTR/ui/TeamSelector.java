@@ -40,12 +40,12 @@ public class TeamSelector extends CustomUI implements Listener {
     private String lastTeam;
 
     public TeamSelector(Player player) {
-        super(27, "Team Selection");
+        super(9, "Team Selection");
         this.owner = player;
         setUp();
         TTRCore.getInstance().getServer().getPluginManager().registerEvents(this, TTRCore.getInstance());
         if(TTRCore.getInstance().getMatchFromWorld(player.getWorld()) !=null) {
-            TTRTeam possibleTeam = Objects.requireNonNull(TTRCore.getInstance().getMatchFromWorld(player.getWorld())).getTeamHandler().getPlayerTeam(this.owner);
+            TTRTeam possibleTeam = TTRCore.getInstance().getMatchFromWorld(player.getWorld()).getTeamHandler().getPlayerTeam(this.owner);
             if (possibleTeam != null) {
                 for (int i = 0; i < super.getInventory().getSize(); i++) {
                     ItemStack stack = super.getInventory().getItem(i);
