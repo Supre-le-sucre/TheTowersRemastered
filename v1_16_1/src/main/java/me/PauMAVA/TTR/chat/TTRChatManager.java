@@ -33,31 +33,38 @@ import java.util.Objects;
 public class TTRChatManager {
 
     public static void sendMessage(Player sender, String originalMessage) {
-        if (originalMessage.startsWith("!")) {
-            dispatchGlobalMessage(originalMessage, sender.getWorld());
+        if(TTRCore.getInstance().getMatchFromWorld(sender.getWorld()) != null) {
+            if (originalMessage.startsWith("!")) {
+                dispatchGlobalMessage(originalMessage, sender);
+            } else {
+                dispatchTeamMessage(originalMessage, sender);
+            }
         } else {
-            dispatchTeamMessage(originalMessage, sender);
+            for(Player p : Bukkit.getServer().getOnlinePlayers()) {
+                if(p.getWorld().equals(sender.getWorld())) {
+                    p.sendMessage(originalMessage);
+                }
+            }
         }
     }
 
-    private static void dispatchGlobalMessage(String string, World world) {
+    private static void dispatchGlobalMessage(String string,  Player sender) {
+        string  = string.substring(1);
+        TTRTeam playerTeam = TTRCore.getInstance().getMatchFromWorld(sender.getWorld()).getTeamHandler().getPlayerTeam(sender);
         for (Player p : Bukkit.getServer().getOnlinePlayers()) {
-            if(p.getWorld().equals(world))
-                p.sendMessage(TTRPrefix.TTR_GLOBAL + "" + ChatColor.GRAY + string);
+            if(p.getWorld().equals(sender.getWorld()))
+                p.sendMessage(TTRPrefix.TTR_GLOBAL + "" + TTRCore.getInstance().getConfigManager().getTeamColor(playerTeam.getIdentifier()) + sender.getName() + ChatColor.GRAY + " > " + ChatColor.GRAY + string);
         }
     }
 
     private static void dispatchTeamMessage(String string, Player sender) {
-        if(TTRCore.getInstance().getMatchFromWorld(sender.getWorld()) != null) {
-            TTRTeam playerTeam = TTRCore.getInstance().getMatchFromWorld(sender.getWorld()).getTeamHandler().getPlayerTeam(sender);
-            if (playerTeam == null) {
-                return;
-            }
-            for (Player p : playerTeam.getPlayers()) {
-                p.sendMessage(TTRPrefix.TTR_TEAM + "" + ChatColor.GRAY + string);
-            }
+        TTRTeam playerTeam = TTRCore.getInstance().getMatchFromWorld(sender.getWorld()).getTeamHandler().getPlayerTeam(sender);
+        if (playerTeam == null) {
+            return;
+        }
+        for (Player p : playerTeam.getPlayers()) {
+            p.sendMessage(TTRPrefix.TTR_TEAM + "" + TTRCore.getInstance().getConfigManager().getTeamColor(playerTeam.getIdentifier()) + sender.getName() + ChatColor.GRAY + " > " + ChatColor.GRAY + string);
         }
     }
-
 
 }

@@ -43,7 +43,7 @@ public class CageChecker {
             @Override
             public void run() {
                 for (TTRMatch match : TTRCore.getInstance().getCurrentMatches()) {
-                    for (Player p : Bukkit.getServer().getOnlinePlayers()) { //TODO get players from match instead
+                    for (Player p : match.getPlayers()) {
                         for (Cage cage : cages) {
                             Location particleLocation = new Location(cage.getLocation().getWorld(), cage.getLocation().getBlockX(), cage.getLocation().getBlockY() + 1, cage.getLocation().getBlockZ());
                             particleLocation.add(particleLocation.getX() > 0 ? 0.5 : -0.5, 0.0, particleLocation.getZ() > 0 ? 0.5 : -0.5);
@@ -75,7 +75,7 @@ public class CageChecker {
             player.teleport(TTRCore.getInstance().getConfigManager().getTeamSpawn(playersTeam.getIdentifier()));
             playersTeam.addPoints(1);
             TTRCore.getInstance().getMatchFromWorld(player.getWorld()).getScoreboard().refreshScoreboard();
-            Bukkit.broadcastMessage(TTRPrefix.TTR_GAME + "" + ChatColor.GRAY + player.getName() + PluginString.SCORE_OUTPUT);
+            Bukkit.broadcastMessage(TTRPrefix.TTR_GAME + "" + TTRCore.getInstance().getConfigManager().getTeamColor(playersTeam.getIdentifier()) + player.getName() + PluginString.SCORE_OUTPUT);
             for (Player p : Bukkit.getServer().getOnlinePlayers()) {
                 p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 10, 1);
             }

@@ -27,10 +27,7 @@ import me.PauMAVA.TTR.match.MatchStatus;
 import me.PauMAVA.TTR.match.TTRMatch;
 import me.PauMAVA.TTR.ui.MatchSelector;
 import me.PauMAVA.TTR.ui.TeamSelector;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -77,7 +74,6 @@ public class EventListener implements Listener {
 
 
             } */
-            event.setJoinMessage(TTRPrefix.TTR_GAME + "" + ChatColor.GREEN + "+ " + ChatColor.GRAY + event.getPlayer().getName() + PluginString.ON_PLAYER_JOIN_OUTPUT);
 
         }
     }
@@ -100,13 +96,15 @@ public class EventListener implements Listener {
 
     @EventHandler
     public void onPlayerDropEvent(PlayerDropItemEvent event) {
-        if (plugin.enabled() && TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()) !=null && !plugin.getMatchFromWorld(event.getPlayer().getWorld()).isOnCourse()) {
+        if (plugin.enabled() && TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()) != null && !plugin.getMatchFromWorld(event.getPlayer().getWorld()).isOnCourse()) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler
     public void playerClickEvent(PlayerInteractEvent event) {
+        if(plugin.enabled() && TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()) == null && event.getItem() != null && event.getItem().getType() == Material.IRON_SWORD)
+            new MatchSelector(event.getPlayer()).openSelector();
         if (plugin.enabled() && TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()) != null && !(plugin.getMatchFromWorld(event.getPlayer().getWorld()).getStatus() == MatchStatus.INGAME)) {
             if (event.getAction() == Action.LEFT_CLICK_BLOCK || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
                 return;
@@ -115,12 +113,12 @@ public class EventListener implements Listener {
             if (event.getItem() != null && event.getItem().getType() == Material.BLACK_BANNER) {
                 new TeamSelector(event.getPlayer()).openSelector();
             }
-            else if (event.getItem() != null && event.getItem().getType() == Material.IRON_SWORD) {
-                new MatchSelector(event.getPlayer()).openSelector();
-
-            }
             else if (event.getItem() != null && event.getItem().getType() == Material.RED_BED) {
+                plugin.getAutoStarter().removePlayerFromQueue(event.getPlayer(), TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()));
                 event.getPlayer().teleport(TTRCore.getInstance().getConfigManager().getMainLobbyLocation());
+                event.getPlayer().getInventory().clear();
+                event.getPlayer().getInventory().setItem(0, new ItemStack(Material.IRON_SWORD, 1));
+
 
             }
         }
@@ -129,7 +127,7 @@ public class EventListener implements Listener {
 
     @EventHandler
     public void placeBlockEvent(BlockPlaceEvent event) {
-        if (plugin.enabled() && TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()) !=null && !(plugin.getMatchFromWorld(event.getPlayer().getWorld()).getStatus() == MatchStatus.INGAME)) {
+        if (plugin.enabled() && TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()) != null && !(plugin.getMatchFromWorld(event.getPlayer().getWorld()).getStatus() == MatchStatus.INGAME)) {
             event.getPlayer().sendMessage(TTRPrefix.TTR_GAME + "" + ChatColor.RED + PluginString.ON_PLACE_BLOCK_ERROR);
             event.setCancelled(true);
         }
@@ -137,7 +135,7 @@ public class EventListener implements Listener {
 
     @EventHandler
     public void breakBlockEvent(BlockBreakEvent event) {
-        if (plugin.enabled() && TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()) !=null && !plugin.getMatchFromWorld(event.getPlayer().getWorld()).isOnCourse()) {
+        if (plugin.enabled() && TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()) != null && !plugin.getMatchFromWorld(event.getPlayer().getWorld()).isOnCourse()) {
             event.getPlayer().sendMessage(TTRPrefix.TTR_GAME + "" + ChatColor.RED + PluginString.ON_BREAK_BLOCK_ERROR);
             event.setCancelled(true);
         }
@@ -145,8 +143,20 @@ public class EventListener implements Listener {
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
-        if (plugin.enabled() && TTRCore.getInstance().getMatchFromWorld(event.getEntity().getWorld()) !=null && Objects.requireNonNull(plugin.getMatchFromWorld(event.getEntity().getWorld())).isOnCourse()) {
-            plugin.getMatchFromWorld(event.getEntity().getWorld()).playerDeath(event.getEntity(), event.getEntity().getKiller());
+        if (plugin.enabled() && TTRCore.getInstance().getMatchFromWorld(event.getEntity().getWorld()) !=null && plugin.getMatchFromWorld(event.getEntity().getWorld()).isOnCourse()) {
+            Player whoDied =  event.getEntity();
+            Player whoKilled = event.getEntity().getKiller();
+            TTRMatch match = plugin.getMatchFromWorld(event.getEntity().getWorld());
+            plugin.getMatchFromWorld(event.getEntity().getWorld()).playerDeath(whoDied, whoKilled);
+            event.setDeathMessage("");
+            if(whoKilled != null) whoKilled.playSound(whoKilled.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 10 , 2);
+            for(Player p : match.getPlayers()) {
+                if(whoKilled == null) {
+                    p.sendMessage(ChatColor.RED + "☠ " +plugin.getConfigManager().getTeamColor(match.getTeamHandler().getPlayerTeam(whoDied).getIdentifier()) + whoDied.getName());
+                } else {
+                    p.sendMessage( plugin.getConfigManager().getTeamColor(match.getTeamHandler().getPlayerTeam(whoKilled).getIdentifier()) + whoKilled.getName() + ChatColor.RED + " ► " + plugin.getConfigManager().getTeamColor(match.getTeamHandler().getPlayerTeam(whoDied).getIdentifier()) + whoDied.getName());
+                }
+            }
         }
     }
 
@@ -166,8 +176,11 @@ public class EventListener implements Listener {
             Inventory playerInventory = player.getInventory();
             playerInventory.clear();
             playerInventory.setItem(0, new ItemStack(Material.BLACK_BANNER));
-            playerInventory.setItem(8, new ItemStack(Material.BLACK_BANNER));
+            playerInventory.setItem(8, new ItemStack(Material.RED_BED));
             plugin.getAutoStarter().addPlayerToQueue(player, match);
+            for(Player p: event.getMatch().getPlayers()) {
+               p.sendMessage(TTRPrefix.TTR_GAME + "" + ChatColor.GREEN + "+ " + ChatColor.GRAY + event.getPlayer().getName() + PluginString.ON_PLAYER_JOIN_OUTPUT);
+            }
         } else {
             event.setCancelled(true);
             //TODO make this better wsh

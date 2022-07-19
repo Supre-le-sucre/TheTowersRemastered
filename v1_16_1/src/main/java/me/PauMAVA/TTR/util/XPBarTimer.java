@@ -47,20 +47,18 @@ public class XPBarTimer {
     public XPBarTimer(int time, TTRMatch match) {
         this.i = time;
         this.match = match;
+        if(match == null) return;
         instances.add(this);
         match.setStatus(MatchStatus.ONCOUNTDOWN);
         BukkitTask timer = new BukkitRunnable() {
             @Override
             public void run() {
-                for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-                    if(player.getWorld().equals(match.getWorld()))
-                        player.setLevel(getMatchTimer(match).getTime());
+                for (Player player : match.getPlayers()) {
+                    player.setLevel(getMatchTimer(match).getTime());
                 }
                 if (getMatchTimer(match).getTime() <= 5) {
-                    for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-                        if(player.getWorld().equals(match.getWorld()))
-                            player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 10, 1);
-
+                    for (Player player : match.getPlayers()) {
+                        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 10, 1);
                     }
                 }
                 if (getMatchTimer(match).getTime() <= 0) {

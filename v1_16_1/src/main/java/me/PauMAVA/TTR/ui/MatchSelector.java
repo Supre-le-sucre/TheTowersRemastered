@@ -19,6 +19,7 @@
 package me.PauMAVA.TTR.ui;
 
 import me.PauMAVA.TTR.TTRCore;
+import me.PauMAVA.TTR.match.MatchStatus;
 import me.PauMAVA.TTR.match.TTRMatch;
 import me.PauMAVA.TTR.teams.TTRTeam;
 import me.PauMAVA.TTR.util.JoinMatchEvent;
@@ -59,7 +60,11 @@ public class MatchSelector extends CustomUI implements Listener {
         int i = 0;
         for (TTRMatch match : TTRCore.getInstance().getCurrentMatches()) {
             //TODO put lore according to MatchStatus (learn how enum works)
-            setSlot(i, new ItemStack(Material.IRON_SWORD, 1), "Match " + match.getId(), null);
+            if(match.getStatus() == MatchStatus.PREGAME) {
+                setSlot(i, new ItemStack(Material.IRON_SWORD, 1), ChatColor.GREEN + "Match " + match.getId(),  ChatColor.WHITE + String.valueOf(match.getPlayers().size()) + " joueur(s) en attente");
+            } else {
+                setSlot(i, new ItemStack(Material.IRON_SWORD, 1), ChatColor.RED + "Match " + match.getId(),  ChatColor.RED + " Match déjà en cours !");
+            }
             i++;
         }
     }
@@ -72,6 +77,7 @@ public class MatchSelector extends CustomUI implements Listener {
             Player player = (Player) event.getWhoClicked();
             JoinMatchEvent joinMatchEvent = new JoinMatchEvent(player, match);
             Bukkit.getPluginManager().callEvent(joinMatchEvent);
+            event.setCancelled(true);
 
         }
     }

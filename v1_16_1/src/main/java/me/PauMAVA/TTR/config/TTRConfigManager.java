@@ -39,6 +39,7 @@ public class TTRConfigManager {
     private ConfigurationSection teamsSection;
     private ConfigurationSection lobbySection;
     private ConfigurationSection autoStartSection;
+    private static ArrayList<TTRMatch> matches = new ArrayList<TTRMatch>();
 
     public TTRConfigManager(FileConfiguration configuration) {
         this.configuration = configuration;
@@ -140,16 +141,19 @@ public class TTRConfigManager {
 
     public ArrayList<TTRMatch> getMatchesRegistered() {
         int i = 0;
-        ArrayList<TTRMatch> matches = new ArrayList<TTRMatch>();
-        while(true) {
-            ConfigurationSection section = this.configuration.getConfigurationSection("match."+i);
-            if(section != null) {
-                matches.add(new TTRMatch(MatchStatus.PREGAME, this.configuration.getConfigurationSection("match."+i+".map").getLocation("lobby").getWorld(), i));
-            } else {
-                return matches;
-            }
-            i++;
+        if(matches.isEmpty()) {
+            while (true) {
+                ConfigurationSection section = this.configuration.getConfigurationSection("match." + i);
+                if (section != null) {
+                    matches.add(new TTRMatch(MatchStatus.PREGAME, this.configuration.getConfigurationSection("match." + i + ".map").getLocation("lobby").getWorld(), i));
+                } else {
+                    return matches;
+                }
+                i++;
 
+            }
+        } else {
+            return matches;
         }
     }
 

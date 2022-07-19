@@ -26,7 +26,6 @@ import me.PauMAVA.TTR.match.AutoStarter;
 import me.PauMAVA.TTR.match.MatchStatus;
 import me.PauMAVA.TTR.match.TTRMatch;
 import me.PauMAVA.TTR.teams.TTRTeamHandler;
-import me.PauMAVA.TTR.ui.TTRCustomTab;
 import me.PauMAVA.TTR.ui.TTRScoreboard;
 import me.PauMAVA.TTR.util.EventListener;
 import me.PauMAVA.TTR.util.PacketInterceptor;
@@ -47,7 +46,6 @@ public class TTRCore extends JavaPlugin {
 
     private TTRConfigManager configManager;
     private ArrayList<TTRWorldHandler> worldHandler = new ArrayList<>();
-    private TTRCustomTab customTab;
 
     private AutoStarter autoStarter;
     private LanguageManager languageManager;
@@ -71,7 +69,6 @@ public class TTRCore extends JavaPlugin {
                 }
                 instance.packetInterceptor = new PacketInterceptor(instance);
                 if (enabled) {
-                    instance.customTab = new TTRCustomTab(instance);
                     instance.autoStarter = new AutoStarter(instance, instance.getConfig());
                     for(TTRMatch match : configManager.getMatchesRegistered()) {
                         instance.matches.add(match);
@@ -79,7 +76,6 @@ public class TTRCore extends JavaPlugin {
                         instance.worldHandler.add(new TTRWorldHandler(instance, match));
                         TTRWorldHandler.getWorldHandler(match).setUpWorld();
                     }
-                    instance.customTab.runTaskTimer(instance, 0L, 20L);
 
                     instance.getServer().getPluginManager().registerEvents(new EventListener(instance), instance);
                 } else {
@@ -104,7 +100,6 @@ public class TTRCore extends JavaPlugin {
     @Override
     public void onDisable() {
         try {
-            this.customTab.cancel();
             for(TTRMatch match : this.getCurrentMatches()) {
                 match.getScoreboard().removeScoreboard();
             }
@@ -134,7 +129,7 @@ public class TTRCore extends JavaPlugin {
             if(match.getWorld().equals(world)) return match;
         }
         //TODO add placeholder match
-        return this.matches.get(0);
+        return null;
     }
     public TTRConfigManager getConfigManager() {
         return this.configManager;

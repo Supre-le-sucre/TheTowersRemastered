@@ -81,19 +81,21 @@ public class TeamSelector extends CustomUI implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getClickedInventory() == super.getInventory() && event.getClickedInventory().getItem(event.getSlot()) != null) {
+        if (event.getClickedInventory() == super.getInventory() && event.getClickedInventory().getItem(event.getSlot()) != null && !event.getClickedInventory().getItem(event.getSlot()).getEnchantments().containsKey(Enchantment.PROTECTION_ENVIRONMENTAL)) {
             this.selected = event.getSlot();
+            event.setCancelled(true);
             setUp();
             addEnchantment(this.selected);
             String teamName = super.getInventory().getItem(this.selected).getItemMeta().getDisplayName();
             TTRCore.getInstance().getMatchFromWorld(event.getWhoClicked().getWorld()).getTeamHandler().addPlayer(teamName, this.owner);
+            for(Player p : TTRCore.getInstance().getMatchFromWorld(event.getWhoClicked().getWorld()).getPlayers()) {
+                //TODO make this thing modifiable in config
+                p.sendMessage(TTRCore.getInstance().getConfigManager().getTeamColor(teamName) + event.getWhoClicked().getName() + " a rejoint l'équipe " + String.valueOf(TTRCore.getInstance().getConfigManager().getTeamColor(teamName)).substring(9).toLowerCase() + " !");
+            }
             if (lastTeam != null) {
                 TTRCore.getInstance().getMatchFromWorld(event.getWhoClicked().getWorld()).getTeamHandler().removePlayer(teamName, this.owner);
             }
             this.lastTeam = teamName;
-        }
-        if (TTRCore.getInstance().enabled() && !TTRCore.getInstance().getMatchFromWorld(event.getWhoClicked().getWorld()).isOnCourse()) {
-            event.setCancelled(true);
         }
     }
 
