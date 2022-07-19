@@ -148,7 +148,7 @@ public class EventListener implements Listener {
             Player whoKilled = event.getEntity().getKiller();
             TTRMatch match = plugin.getMatchFromWorld(event.getEntity().getWorld());
             plugin.getMatchFromWorld(event.getEntity().getWorld()).playerDeath(whoDied, whoKilled);
-            event.setDeathMessage("");
+            event.setDeathMessage(null);
             if(whoKilled != null) whoKilled.playSound(whoKilled.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 10 , 2);
             for(Player p : match.getPlayers()) {
                 if(whoKilled == null) {
