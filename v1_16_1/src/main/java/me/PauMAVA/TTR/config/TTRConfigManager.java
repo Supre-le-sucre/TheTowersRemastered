@@ -73,6 +73,8 @@ public class TTRConfigManager {
     public Location getPreGameLobbyLocation(int id) { return this.configuration.getConfigurationSection("match."+id+".map").getLocation("lobby"); }
     public Location getMainLobbyLocation() { return this.lobbySection.getLocation("main_lobby"); }
 
+    public double getYInstaKill(int id) { return this.configuration.getConfigurationSection("match."+id+".map").getInt("void_y"); }
+
     public List<Location> getIronSpawns(int id) {
         return (List<Location>) this.configuration.getConfigurationSection("match."+id+".map").getList("ironspawns");
     }
@@ -172,6 +174,7 @@ public class TTRConfigManager {
         match0.addDefault("maxhealth", 20);
         ConfigurationSection mapSection = this.configuration.createSection("match.0.map");
         mapSection.addDefault("lobby", new Location(this.world, 0, 207, 1014));
+        mapSection.addDefault("void_y", 126);
         mapSection.addDefault("ironspawns", new ArrayList<Location>(Arrays.asList(new Location(this.world, -0, 206, 1138))));
         mapSection.addDefault("xpspawns", new ArrayList<Location>(Arrays.asList(new Location(this.world, -0, 206, 1166))));
         this.teamsSection = this.configuration.createSection("teams");

@@ -10,3 +10,5 @@ commands:
     description: Enbles the plugin on server start.
   ttrdisable:
     description: Disables the plugin on server start.
+  reload-config:
+    description: Reload the configuration file.

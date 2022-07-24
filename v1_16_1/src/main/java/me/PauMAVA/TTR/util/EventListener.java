@@ -32,13 +32,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.Objects;
 
@@ -55,19 +53,21 @@ public class EventListener implements Listener {
     
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-    //TODO Modify this in order to have an intermediate lobby to choose match from
 
         if (plugin.enabled()) {
             //plugin.getPacketInterceptor().addPlayer(event.getPlayer());
             //TTRMatch match = plugin.getMatchFromWorld(event.getPlayer().getWorld());
             //if(match ==  null) {
                 //Player is not in a match when reconnected, should be taken in Main Lobby
-                Location location = plugin.getConfigManager().getMainLobbyLocation();
-                Location copy = new Location(location.getWorld(), location.getX(), location.getY(), location.getZ());
-                copy.add(location.getX() > 0 ? 0.5 : -0.5, 0.0, location.getZ() > 0 ? 0.5 : -0.5);
-                event.getPlayer().teleport(copy);
-                event.getPlayer().getInventory().clear();
-                event.getPlayer().getInventory().setItem(0, new ItemStack(Material.IRON_SWORD, 1));
+            Location location = plugin.getConfigManager().getMainLobbyLocation();
+            Location copy = new Location(location.getWorld(), location.getX(), location.getY(), location.getZ());
+            copy.add(location.getX() > 0 ? 0.5 : -0.5, 0.0, location.getZ() > 0 ? 0.5 : -0.5);
+            event.getPlayer().sendMessage(ChatColor.RED + "Avertissement");
+            event.getPlayer().sendMessage(ChatColor.RED + "Le Tower viens tout juste d'être créé ce qui signifie que certains bugs apparaîtront en jeu");
+            event.getPlayer().sendMessage(ChatColor.GOLD + "Merci de le faire savoir à l'équipe de développement !");
+            event.getPlayer().teleport(copy);
+            event.getPlayer().getInventory().clear();
+            event.getPlayer().getInventory().setItem(0, new ItemBuilder(Material.IRON_SWORD).setName(ChatColor.GOLD + "Sélectionnez un match").toItemStack());
             /*} else {
                 JoinMatchEvent joinMatchEvent = new JoinMatchEvent(event.getPlayer(), match);
                 Bukkit.getPluginManager().callEvent(joinMatchEvent);
@@ -87,19 +87,23 @@ public class EventListener implements Listener {
 
     @EventHandler
     public void onPlayerLeave(PlayerQuitEvent event) {
-        if (plugin.enabled()) {
-            event.setQuitMessage(TTRPrefix.TTR_GAME + "" + ChatColor.RED + "- " + ChatColor.GRAY + event.getPlayer().getName() + PluginString.ON_PLAYER_LEAVE_OUTPUT);
+        if (plugin.enabled() && TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()) != null) {
+            TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()).getTeamHandler().getPlayerTeam(event.getPlayer()).removePlayer(event.getPlayer());
+            TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()).removePlayer(event.getPlayer());
             plugin.getAutoStarter().removePlayerFromQueue(event.getPlayer(), TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()));
             plugin.getPacketInterceptor().removePlayer(event.getPlayer());
+            if(TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()).getPlayers().isEmpty()) {
+                TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()).endMatch(null);
+            }
         }
     }
 
-    @EventHandler
+    /*@EventHandler
     public void onPlayerDropEvent(PlayerDropItemEvent event) {
         if (plugin.enabled() && TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()) != null && !plugin.getMatchFromWorld(event.getPlayer().getWorld()).isOnCourse()) {
             event.setCancelled(true);
         }
-    }
+    } */
 
     @EventHandler
     public void playerClickEvent(PlayerInteractEvent event) {
@@ -110,14 +114,19 @@ public class EventListener implements Listener {
                 return;
             }
             event.setCancelled(true);
-            if (event.getItem() != null && event.getItem().getType() == Material.BLACK_BANNER) {
+            if (event.getItem() != null && event.getItem().getType().toString().split("_")[1].equalsIgnoreCase("BANNER")) {
                 new TeamSelector(event.getPlayer()).openSelector();
             }
             else if (event.getItem() != null && event.getItem().getType() == Material.RED_BED) {
                 plugin.getAutoStarter().removePlayerFromQueue(event.getPlayer(), TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()));
+                plugin.getMatchFromWorld(event.getPlayer().getWorld()).removePlayer(event.getPlayer());
+                TTRChatManager.broadcastMatchMessage(TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()), TTRPrefix.TTR_GAME + "" + ChatColor.RED + "- " + ChatColor.GRAY + event.getPlayer().getName() + PluginString.ON_PLAYER_LEAVE_OUTPUT);
+                if(plugin.getMatchFromWorld(event.getPlayer().getWorld()).getTeamHandler().getPlayerTeam(event.getPlayer()) != null) plugin.getMatchFromWorld(event.getPlayer().getWorld()).getTeamHandler().getPlayerTeam(event.getPlayer()).removePlayer(event.getPlayer());
                 event.getPlayer().teleport(TTRCore.getInstance().getConfigManager().getMainLobbyLocation());
                 event.getPlayer().getInventory().clear();
-                event.getPlayer().getInventory().setItem(0, new ItemStack(Material.IRON_SWORD, 1));
+                event.getPlayer().setLevel(0);
+                event.getPlayer().setExp(0.0f);
+                event.getPlayer().getInventory().setItem(0, new ItemBuilder(Material.IRON_SWORD).setName(ChatColor.GOLD + "Sélectionnez un match").toItemStack());
 
 
             }
@@ -125,21 +134,21 @@ public class EventListener implements Listener {
 
     }
 
-    @EventHandler
+    /*@EventHandler
     public void placeBlockEvent(BlockPlaceEvent event) {
         if (plugin.enabled() && TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()) != null && !(plugin.getMatchFromWorld(event.getPlayer().getWorld()).getStatus() == MatchStatus.INGAME)) {
             event.getPlayer().sendMessage(TTRPrefix.TTR_GAME + "" + ChatColor.RED + PluginString.ON_PLACE_BLOCK_ERROR);
             event.setCancelled(true);
         }
-    }
+    } */
 
-    @EventHandler
+    /*@EventHandler
     public void breakBlockEvent(BlockBreakEvent event) {
         if (plugin.enabled() && TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()) != null && !plugin.getMatchFromWorld(event.getPlayer().getWorld()).isOnCourse()) {
             event.getPlayer().sendMessage(TTRPrefix.TTR_GAME + "" + ChatColor.RED + PluginString.ON_BREAK_BLOCK_ERROR);
             event.setCancelled(true);
         }
-    }
+    } */
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
@@ -152,12 +161,20 @@ public class EventListener implements Listener {
             if(whoKilled != null) whoKilled.playSound(whoKilled.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 10 , 2);
             for(Player p : match.getPlayers()) {
                 if(whoKilled == null) {
-                    p.sendMessage(ChatColor.RED + "☠ " +plugin.getConfigManager().getTeamColor(match.getTeamHandler().getPlayerTeam(whoDied).getIdentifier()) + whoDied.getName());
+                    p.sendMessage(ChatColor.DARK_RED + "☠ " +plugin.getConfigManager().getTeamColor(match.getTeamHandler().getPlayerTeam(whoDied).getIdentifier()) + whoDied.getName());
                 } else {
-                    p.sendMessage( plugin.getConfigManager().getTeamColor(match.getTeamHandler().getPlayerTeam(whoKilled).getIdentifier()) + whoKilled.getName() + ChatColor.RED + " ► " + plugin.getConfigManager().getTeamColor(match.getTeamHandler().getPlayerTeam(whoDied).getIdentifier()) + whoDied.getName());
+                    p.sendMessage( plugin.getConfigManager().getTeamColor(match.getTeamHandler().getPlayerTeam(whoKilled).getIdentifier()) + whoKilled.getName() + ChatColor.DARK_RED + " ► " + plugin.getConfigManager().getTeamColor(match.getTeamHandler().getPlayerTeam(whoDied).getIdentifier()) + whoDied.getName());
                 }
             }
         }
+    }
+
+    @EventHandler
+    public void onMove(PlayerMoveEvent event) {
+        if(TTRCore.getInstance().enabled() && TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()) != null && TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()).isOnCourse())
+            if(event.getPlayer().getLocation().getY() <= (int) TTRCore.getInstance().getConfigManager().getYInstaKill(TTRCore.getInstance().getMatchFromWorld(event.getPlayer().getWorld()).getId())) {
+                event.getPlayer().setHealth(0);
+            }
     }
 
     @EventHandler
@@ -168,15 +185,22 @@ public class EventListener implements Listener {
     }
 
     @EventHandler
+    public void onPvP(EntityDamageByEntityEvent event) {
+        if(event.getEntity() instanceof Player && event.getDamager() instanceof Player && TTRCore.getInstance().getMatchFromWorld(event.getEntity().getWorld()) !=null && TTRCore.getInstance().getMatchFromWorld(event.getEntity().getWorld()).isOnCourse() && TTRCore.getInstance().getMatchFromWorld(event.getEntity().getWorld()).getTeamHandler().getPlayerTeam((Player)event.getEntity()).equals(TTRCore.getInstance().getMatchFromWorld(event.getEntity().getWorld()).getTeamHandler().getPlayerTeam((Player)event.getDamager()))) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
     public void onMatchJoined(JoinMatchEvent event) {
-        if(event.getMatch().getStatus() == MatchStatus.PREGAME && !event.isCancelled()) {
+        if(event.getMatch().getStatus() == MatchStatus.PREGAME || event.getMatch().getStatus() == MatchStatus.ONCOUNTDOWN && !event.isCancelled()) {
             Player player = event.getPlayer();
             TTRMatch match = event.getMatch();
             player.teleport(TTRCore.getInstance().getConfigManager().getPreGameLobbyLocation(match.getId()));
             Inventory playerInventory = player.getInventory();
             playerInventory.clear();
-            playerInventory.setItem(0, new ItemStack(Material.BLACK_BANNER));
-            playerInventory.setItem(8, new ItemStack(Material.RED_BED));
+            playerInventory.setItem(0, new ItemBuilder(Material.WHITE_BANNER).setName(ChatColor.GOLD + "Choisissez votre équipe !").toItemStack());
+            playerInventory.setItem(8, new ItemBuilder(Material.RED_BED).setName(ChatColor.RED + "Retourner au Lobby").toItemStack());
             plugin.getAutoStarter().addPlayerToQueue(player, match);
             for(Player p: event.getMatch().getPlayers()) {
                p.sendMessage(TTRPrefix.TTR_GAME + "" + ChatColor.GREEN + "+ " + ChatColor.GRAY + event.getPlayer().getName() + PluginString.ON_PLAYER_JOIN_OUTPUT);
@@ -184,7 +208,7 @@ public class EventListener implements Listener {
         } else {
             event.setCancelled(true);
             //TODO make this better wsh
-            event.getPlayer().sendMessage(ChatColor.RED + " Impossible de rejoindre le match " + event.getMatch().getId());
+            event.getPlayer().sendMessage(ChatColor.RED + "Impossible de rejoindre le match " + event.getMatch().getId());
         }
     }
 

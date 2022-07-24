@@ -19,7 +19,9 @@
 package me.PauMAVA.TTR.ui;
 
 import me.PauMAVA.TTR.TTRCore;
+import me.PauMAVA.TTR.chat.TTRChatManager;
 import me.PauMAVA.TTR.teams.TTRTeam;
+import me.PauMAVA.TTR.util.ItemBuilder;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -54,6 +56,7 @@ public class TeamSelector extends CustomUI implements Listener {
                         if (possibleTeam.getIdentifier().equalsIgnoreCase(cleanName)) {
                             this.selected = i;
                             addEnchantment(i);
+                            this.lastTeam = cleanName;
                             break;
                         }
                     }
@@ -83,19 +86,22 @@ public class TeamSelector extends CustomUI implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getClickedInventory() == super.getInventory() && event.getClickedInventory().getItem(event.getSlot()) != null && !event.getClickedInventory().getItem(event.getSlot()).getEnchantments().containsKey(Enchantment.PROTECTION_ENVIRONMENTAL)) {
             this.selected = event.getSlot();
-            event.setCancelled(true);
             setUp();
             addEnchantment(this.selected);
             String teamName = super.getInventory().getItem(this.selected).getItemMeta().getDisplayName();
-            TTRCore.getInstance().getMatchFromWorld(event.getWhoClicked().getWorld()).getTeamHandler().addPlayer(teamName, this.owner);
-            for(Player p : TTRCore.getInstance().getMatchFromWorld(event.getWhoClicked().getWorld()).getPlayers()) {
-                //TODO make this thing modifiable in config
-                p.sendMessage(TTRCore.getInstance().getConfigManager().getTeamColor(teamName) + event.getWhoClicked().getName() + " a rejoint l'équipe " + String.valueOf(TTRCore.getInstance().getConfigManager().getTeamColor(teamName)).substring(9).toLowerCase() + " !");
-            }
-            if (lastTeam != null) {
-                TTRCore.getInstance().getMatchFromWorld(event.getWhoClicked().getWorld()).getTeamHandler().removePlayer(teamName, this.owner);
+            TTRCore.getInstance().getMatchFromWorld(this.owner.getWorld()).getTeamHandler().addPlayer(teamName, this.owner);
+            if (this.lastTeam != null) {
+                TTRCore.getInstance().getMatchFromWorld(this.owner.getWorld()).getTeamHandler().removePlayer(this.lastTeam, this.owner);
             }
             this.lastTeam = teamName;
+            TTRChatManager.broadcastMatchMessage(TTRCore.getInstance().getMatchFromWorld(this.owner.getWorld()), TTRCore.getInstance().getConfigManager().getTeamColor(TTRCore.getInstance().getMatchFromWorld(this.owner.getWorld()).getTeamHandler().getPlayerTeam(this.owner).getIdentifier()) + this.owner.getName() + " a rejoint l'équipe " + TTRCore.getInstance().getConfigManager().getTeamColor(TTRCore.getInstance().getMatchFromWorld(this.owner.getWorld()).getTeamHandler().getPlayerTeam(this.owner).getIdentifier()).name().toLowerCase() + " !");
+            this.owner.getInventory().setItem(0, new ItemBuilder(Material.valueOf(TTRCore.getInstance().getConfigManager().getTeamColor(TTRCore.getInstance().getMatchFromWorld(this.owner.getWorld()).getTeamHandler().getPlayerTeam(this.owner).getIdentifier()).name() + "_BANNER")).setName(teamName).toItemStack());
+        }
+        if (TTRCore.getInstance().enabled() && TTRCore.getInstance().getMatchFromWorld(this.owner.getWorld()) != null && !TTRCore.getInstance().getMatchFromWorld(this.owner.getWorld()).isOnCourse()) {
+            event.setCancelled(true);
+        }
+        if(TTRCore.getInstance().enabled() && TTRCore.getInstance().getMatchFromWorld(this.owner.getWorld()) == null) {
+            event.setCancelled(true);
         }
     }
 

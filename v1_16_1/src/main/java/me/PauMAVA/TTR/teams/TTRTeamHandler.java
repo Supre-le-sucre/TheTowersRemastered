@@ -20,6 +20,8 @@ package me.PauMAVA.TTR.teams;
 
 import me.PauMAVA.TTR.TTRCore;
 import me.PauMAVA.TTR.match.TTRMatch;
+import me.PauMAVA.TTR.util.JoinTeamEvent;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
@@ -45,6 +47,8 @@ public class TTRTeamHandler {
             return false;
         }
         team.addPlayer(player);
+        JoinTeamEvent event = new JoinTeamEvent(player, match, getTeam(teamIdentifier, match));
+        Bukkit.getPluginManager().callEvent(event);
         return true;
     }
 
@@ -84,11 +88,15 @@ public class TTRTeamHandler {
 
     public void addPlayer(String teamIdentifier, Player player) {
         TTRMatch match = TTRCore.getInstance().getMatchFromWorld(player.getWorld());
+        if(getTeam(teamIdentifier, match).getPlayers().contains(player)) return;
         getTeam(teamIdentifier, match).addPlayer(player);
+        JoinTeamEvent event = new JoinTeamEvent(player, match, getTeam(teamIdentifier, match));
+        Bukkit.getPluginManager().callEvent(event);
     }
 
     public void removePlayer(String teamIdentifier, Player player) {
         TTRMatch match = TTRCore.getInstance().getMatchFromWorld(player.getWorld());
+        if(!getTeam(teamIdentifier, match).getPlayers().contains(player)) return;
         getTeam(teamIdentifier, match).removePlayer(player);
     }
 }

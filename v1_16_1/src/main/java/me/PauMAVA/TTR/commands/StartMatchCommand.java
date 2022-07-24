@@ -31,6 +31,7 @@ import org.bukkit.entity.Player;
 public class StartMatchCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender theSender, Command command, String label, String[] args) {
+        //TODO add permission
         if (TTRCore.getInstance().enabled() && theSender instanceof Player && !TTRCore.getInstance().getMatchFromWorld(((Player)theSender).getWorld()).isOnCourse()) {
             int timer;
             if (args == null || args.length == 0) {

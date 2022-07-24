@@ -35,6 +35,9 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 public class MatchSelector extends CustomUI implements Listener {
 
     private Player owner;
@@ -59,11 +62,12 @@ public class MatchSelector extends CustomUI implements Listener {
     public void setUp() {
         int i = 0;
         for (TTRMatch match : TTRCore.getInstance().getCurrentMatches()) {
-            //TODO put lore according to MatchStatus (learn how enum works)
             if(match.getStatus() == MatchStatus.PREGAME) {
                 setSlot(i, new ItemStack(Material.IRON_SWORD, 1), ChatColor.GREEN + "Match " + match.getId(),  ChatColor.WHITE + String.valueOf(match.getPlayers().size()) + " joueur(s) en attente");
+            } else if(match.getStatus() == MatchStatus.ONCOUNTDOWN) {
+                setSlotWithLore(i, new ItemStack(Material.IRON_SWORD, 1), ChatColor.GOLD + "Match " + match.getId(), new ArrayList<>(Arrays.asList(ChatColor.GOLD + "Le match va bientôt commencer !!", " ", ChatColor.WHITE + String.valueOf(match.getPlayers().size()) + " joueur(s) en attente")));
             } else {
-                setSlot(i, new ItemStack(Material.IRON_SWORD, 1), ChatColor.RED + "Match " + match.getId(),  ChatColor.RED + " Match déjà en cours !");
+                setSlot(i, new ItemStack(Material.IRON_SWORD, 1), ChatColor.RED + "Match " + match.getId(),  ChatColor.RED + "Match déjà en cours !");
             }
             i++;
         }

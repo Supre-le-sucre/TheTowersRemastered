@@ -64,6 +64,20 @@ public abstract class CustomUI {
         this.inventory.setItem(id, item);
     }
 
+    public void setSlotWithLore(int id, ItemStack item, @Nullable String title, @Nullable ArrayList<String> lore) {
+        if (title == null) {
+            this.inventory.setItem(id, item);
+            return;
+        }
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(title);
+        if (lore != null) {
+            meta.setLore(lore);
+        }
+        item.setItemMeta(meta);
+        this.inventory.setItem(id, item);
+    }
+
     public void clearSlot(int id) {
         this.inventory.clear(id);
     }

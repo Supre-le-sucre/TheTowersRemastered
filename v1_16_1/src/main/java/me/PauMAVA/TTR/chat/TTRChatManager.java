@@ -48,6 +48,12 @@ public class TTRChatManager {
         }
     }
 
+    public static void broadcastMatchMessage(TTRMatch match, String message) {
+       for(Player p : match.getPlayers()) {
+           p.sendMessage(message);
+       }
+    }
+
     private static void dispatchGlobalMessage(String string,  Player sender) {
         string  = string.substring(1);
         TTRTeam playerTeam = TTRCore.getInstance().getMatchFromWorld(sender.getWorld()).getTeamHandler().getPlayerTeam(sender);

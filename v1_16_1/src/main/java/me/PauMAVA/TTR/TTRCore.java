@@ -128,7 +128,6 @@ public class TTRCore extends JavaPlugin {
 
             if(match.getWorld().equals(world)) return match;
         }
-        //TODO add placeholder match
         return null;
     }
     public TTRConfigManager getConfigManager() {

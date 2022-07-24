@@ -45,30 +45,62 @@ public class XPBarTimer {
     }
 
     public XPBarTimer(int time, TTRMatch match) {
+        if(match.getStatus().equals(MatchStatus.ONCOUNTDOWN)) return;
         this.i = time;
         this.match = match;
         if(match == null) return;
         instances.add(this);
+        XPBarTimer XPtimer = this;
         match.setStatus(MatchStatus.ONCOUNTDOWN);
+        for (Player player : match.getPlayers()) {
+            player.setLevel(this.i);
+            player.setExp(1.0f);
+        }
+        final int[] tick = {0};
         BukkitTask timer = new BukkitRunnable() {
             @Override
             public void run() {
+
+                if(match.getPlayers().size() <= 1) {
+                    cancel();
+                    match.setStatus(MatchStatus.PREGAME);
+                    if(match.getPlayers().size() == 1)
+                        match.getPlayers().forEach(x -> {
+                            x.setLevel(0);
+                            x.setExp(0.0f);
+                        });
+                    return;
+                }
+
+                if(tick[0] == 20) {
+                    getMatchTimer(match).setTime(getMatchTimer(match).getTime()-1);
+                    tick[0] = 0;
+                }
+
                 for (Player player : match.getPlayers()) {
-                    player.setLevel(getMatchTimer(match).getTime());
-                }
-                if (getMatchTimer(match).getTime() <= 5) {
-                    for (Player player : match.getPlayers()) {
-                        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 10, 1);
+                    if(player.getExp() == 0.0f) {
+                        player.setLevel(getMatchTimer(match).getTime());
+                        player.setExp(1.0f);
+                        if (getMatchTimer(match).getTime() <= 5) {
+                            player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 10, 1);
+                        }
                     }
+                    if(player.getExp()-0.05f >= 0) player.setExp(player.getExp()-0.05f);
+                    else player.setExp(0.0f);
+
+
                 }
+
                 if (getMatchTimer(match).getTime() <= 0) {
                     match.startMatch();
+                    instances.remove(XPtimer);
                     cancel();
                     return;
                 }
-                getMatchTimer(match).setTime(getMatchTimer(match).getTime()-1);
+                tick[0]++;
+
             }
-        }.runTaskTimer(TTRCore.getInstance(), 0L, 20L);
+        }.runTaskTimer(TTRCore.getInstance(), 0L, 1L);
     }
 
     public int getTime() { return this.i; }

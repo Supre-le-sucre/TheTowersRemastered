@@ -54,7 +54,8 @@ public class AutoStarter {
                 match.addPlayer(player);
             }
             if (enabled && target <= queue.get(match).size()) {
-                new XPBarTimer(20, match);
+                if(!match.getStatus().equals(MatchStatus.ONCOUNTDOWN))
+                    new XPBarTimer(60, match);
             }
         }
     }
@@ -62,7 +63,6 @@ public class AutoStarter {
     public void removePlayerFromQueue(Player player, TTRMatch match) {
         if (enabled) {
             queue.getOrDefault(match, new ArrayList<>()).remove(player);
-            match.removePlayer(player);
 
         }
     }

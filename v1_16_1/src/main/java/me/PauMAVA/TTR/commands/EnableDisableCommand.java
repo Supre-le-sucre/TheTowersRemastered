@@ -42,6 +42,9 @@ public class EnableDisableCommand implements CommandExecutor {
         } else if (label.equalsIgnoreCase("ttrdisable")) {
             plugin.getConfigManager().setEnableOnStart(false);
             theSender.sendMessage(TTRPrefix.TTR_GAME + "" + ChatColor.RED + PluginString.TTR_DISABLE_OUTPUT);
+        } else if (label.equalsIgnoreCase("reload-config")) {
+            plugin.reloadConfig();
+            theSender.sendMessage(ChatColor.GREEN + "Configuration reloaded !");
         }
         return false;
     }

@@ -18,6 +18,7 @@
 
 package me.PauMAVA.TTR.teams;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -56,6 +57,10 @@ public class TTRTeam {
 
     public void addPoints(int points) {
         this.points += points;
+    }
+
+    public void setPoints(int points) {
+        this.points = points;
     }
 
     public int getPoints() {

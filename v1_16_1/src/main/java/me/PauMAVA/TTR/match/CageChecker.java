@@ -19,6 +19,7 @@
 package me.PauMAVA.TTR.match;
 
 import me.PauMAVA.TTR.TTRCore;
+import me.PauMAVA.TTR.chat.TTRChatManager;
 import me.PauMAVA.TTR.lang.PluginString;
 import me.PauMAVA.TTR.teams.TTRTeam;
 import me.PauMAVA.TTR.util.TTRPrefix;
@@ -37,26 +38,24 @@ public class CageChecker {
     private int checkerTaskPID;
 
 
-    public void startChecking() {
-        //TODO Checker must be independent between world
+    public void startChecking(TTRMatch match) {
         this.checkerTaskPID = new BukkitRunnable() {
+
             @Override
             public void run() {
-                for (TTRMatch match : TTRCore.getInstance().getCurrentMatches()) {
-                    for (Player p : match.getPlayers()) {
-                        for (Cage cage : cages) {
-                            Location particleLocation = new Location(cage.getLocation().getWorld(), cage.getLocation().getBlockX(), cage.getLocation().getBlockY() + 1, cage.getLocation().getBlockZ());
-                            particleLocation.add(particleLocation.getX() > 0 ? 0.5 : -0.5, 0.0, particleLocation.getZ() > 0 ? 0.5 : -0.5);
-                            cage.getLocation().getWorld().spawnParticle(Particle.SPELL, particleLocation, 100);
-                            if (cage.isInCage(p) && match.getTeamHandler().getPlayerTeam(p) != null) {
-                                if (cage.getOwner().equals(match.getTeamHandler().getPlayerTeam(p))) {
-                                    p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 10, 1);
-                                    p.sendMessage(TTRPrefix.TTR_GAME + "" + ChatColor.RED + PluginString.ALLY_CAGE_ENTER_OUTPUT);
-                                    p.teleport(TTRCore.getInstance().getConfigManager().getTeamSpawn(match.getTeamHandler().getPlayerTeam(p).getIdentifier()));
-                                } else {
-                                    cage.getLocation().getWorld().strikeLightningEffect(cage.getLocation());
-                                    playerOnCage(p);
-                                }
+                for (Player p : match.getPlayers()) {
+                    for (Cage cage : cages) {
+                        Location particleLocation = new Location(cage.getLocation().getWorld(), cage.getLocation().getBlockX(), cage.getLocation().getBlockY() + 1, cage.getLocation().getBlockZ());
+                        particleLocation.add(particleLocation.getX() > 0 ? 0.5 : -0.5, 0.0, particleLocation.getZ() > 0 ? 0.5 : -0.5);
+                        cage.getLocation().getWorld().spawnParticle(Particle.SPELL, particleLocation, 100);
+                        if (cage.isInCage(p) && match.getTeamHandler().getPlayerTeam(p) != null) {
+                            if (cage.getOwner().equals(match.getTeamHandler().getPlayerTeam(p))) {
+                                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 10, 1);
+                                p.sendMessage(TTRPrefix.TTR_GAME + "" + ChatColor.RED + PluginString.ALLY_CAGE_ENTER_OUTPUT);
+                                p.teleport(TTRCore.getInstance().getConfigManager().getTeamSpawn(match.getTeamHandler().getPlayerTeam(p).getIdentifier()));
+                            } else {
+                                cage.getLocation().getWorld().strikeLightningEffect(cage.getLocation());
+                                playerOnCage(p);
                             }
                         }
                     }
@@ -75,8 +74,8 @@ public class CageChecker {
             player.teleport(TTRCore.getInstance().getConfigManager().getTeamSpawn(playersTeam.getIdentifier()));
             playersTeam.addPoints(1);
             TTRCore.getInstance().getMatchFromWorld(player.getWorld()).getScoreboard().refreshScoreboard();
-            Bukkit.broadcastMessage(TTRPrefix.TTR_GAME + "" + TTRCore.getInstance().getConfigManager().getTeamColor(playersTeam.getIdentifier()) + player.getName() + PluginString.SCORE_OUTPUT);
-            for (Player p : Bukkit.getServer().getOnlinePlayers()) {
+            TTRChatManager.broadcastMatchMessage(TTRCore.getInstance().getMatchFromWorld(player.getWorld()),TTRPrefix.TTR_GAME + "" + TTRCore.getInstance().getConfigManager().getTeamColor(playersTeam.getIdentifier()) + player.getName() + PluginString.SCORE_OUTPUT);
+            for (Player p : TTRCore.getInstance().getMatchFromWorld(player.getWorld()).getPlayers()) {
                 p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 10, 1);
             }
             if (playersTeam.getPoints() >= TTRCore.getInstance().getConfigManager().getMaxPoints(TTRCore.getInstance().getMatchFromWorld(player.getWorld()).getId())) {
