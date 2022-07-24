@@ -1,5 +1,6 @@
 # TheTowersRemastered
 A remastered version of The Towers for 1.15.X - 1.16.X
+(This fork currently modify the 1.16 version)
 
 ## License (GNU v3)
 ````
